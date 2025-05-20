@@ -131,10 +131,14 @@ export default function TodoList({ refreshKey }: TodoListProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-gray-500 mb-2">
-                    Due: {task.dueDate} {task.dueTime}
-                  </div>
-                  <div className="mb-2">{task.description}</div>
+                  {task.description && (
+                    <div className="mb-2">{task.description}</div>
+                  )}
+                  {(task.dueDate || task.dueTime) && (
+                    <div className="text-sm text-gray-500 mb-2">
+                      Due: {task.dueDate} at {task.dueTime}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button variant="ghost" size="sm">
                       Edit
