@@ -13,12 +13,15 @@ import { useState } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react"; // Or any calendar icon you use
 import { format } from "date-fns";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 
 type AddTaskForm = {
   title: string;
   description: string;
   dueDate: Date | null;
   dueTime: string;
+  priority: string;
 };
 
 type AddTaskProps = {
@@ -32,6 +35,7 @@ export default function AddTask({ onTaskAdded }: AddTaskProps) {
       description: "",
       dueDate: null,
       dueTime: "",
+      priority: "none",
     },
   });
 
@@ -40,7 +44,7 @@ export default function AddTask({ onTaskAdded }: AddTaskProps) {
   async function onSubmit(values: AddTaskForm) {
     setLoading(true);
     const dueDateStr = values.dueDate
-      ? `${values.dueDate.getMonth() + 1}-${values.dueDate.getDate()}-${values.dueDate.getFullYear()}`
+      ? format(values.dueDate, "MMMM d, yyyy")
       : "";
     await addDoc(collection(db, "tasks"), {
       title: values.title,
@@ -49,8 +53,8 @@ export default function AddTask({ onTaskAdded }: AddTaskProps) {
       dueTime: values.dueTime,
       reminder: false,
       completed: false,
-      dateAdded: new Date().toLocaleDateString("en-US"),
-      priority: 0,
+      dateAdded: format(new Date(), "MMMM d, yyyy"),
+      priority: values.priority,
     });
     form.reset();
     setLoading(false);
@@ -108,7 +112,7 @@ export default function AddTask({ onTaskAdded }: AddTaskProps) {
                         type="button"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, "MM-dd-yyyy") : "Pick a date"}
+                        {field.value ? format(field.value, "MMMM d, yyyy") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0" align="start">
@@ -135,6 +139,48 @@ export default function AddTask({ onTaskAdded }: AddTaskProps) {
                       type="time"
                       {...field}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              name="priority"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      className="flex flex-col gap-2"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="none" id="priority-none" />
+                        <label htmlFor="priority-none" className="flex items-center gap-1 cursor-pointer">
+                          <Badge className="bg-gray-400 text-black">No Priority</Badge>
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="low" id="priority-low" />
+                        <label htmlFor="priority-low" className="flex items-center gap-1 cursor-pointer">
+                          <Badge className="bg-yellow-400 text-black">Low</Badge>
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="mid" id="priority-mid" />
+                        <label htmlFor="priority-mid" className="flex items-center gap-1 cursor-pointer">
+                          <Badge className="bg-orange-400 text-black">Mid</Badge>
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="high" id="priority-high" />
+                        <label htmlFor="priority-high" className="flex items-center gap-1 cursor-pointer">
+                          <Badge className="bg-red-500 text-white">High</Badge>
+                        </label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

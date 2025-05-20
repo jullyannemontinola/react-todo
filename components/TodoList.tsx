@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { format, parse } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 type Task = {
   id: string;
@@ -28,7 +30,7 @@ type Task = {
   dueDate?: string; // 'MM-DD-YYYY'
   dueTime?: string; // 'HH:mm'
   dateAdded?: string; // 'MM-DD-YYYY'
-  priority?: number;
+  priority?: string; // changed from number to string
 };
 
 type TodoListProps = {
@@ -128,7 +130,14 @@ export default function TodoList({ refreshKey }: TodoListProps) {
                     <span className={task.completed ? "line-through text-gray-400" : ""}>
                       {task.title}
                     </span>
+                    {task.priority === "low" && <Badge className="bg-yellow-400 text-black ml-2">Low Priority</Badge>}
+                    {task.priority === "mid" && <Badge className="bg-orange-400 text-black ml-2">Mid Priority</Badge>}
+                    {task.priority === "high" && <Badge className="bg-red-500 text-white ml-2">High Priority</Badge>}
+                    {/* No badge for 'none' */}
                   </CardTitle>
+                  {task.dateAdded && !isNaN(Date.parse(task.dateAdded)) && (
+                    <div className="text-xs text-gray-500 ml-7">Added: {format(new Date(task.dateAdded), 'MMMM d, yyyy')}</div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {task.description && (
@@ -136,7 +145,7 @@ export default function TodoList({ refreshKey }: TodoListProps) {
                   )}
                   {(task.dueDate || task.dueTime) && (
                     <div className="text-sm text-gray-500 mb-2">
-                      Due: {task.dueDate} at {task.dueTime}
+                      Due: {task.dueDate && !isNaN(Date.parse(task.dueDate)) ? format(new Date(task.dueDate), 'MMMM d, yyyy') : ''} {task.dueTime}
                     </div>
                   )}
                   <div className="flex gap-2">
