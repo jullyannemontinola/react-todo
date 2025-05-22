@@ -2,35 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  Timestamp,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { format, parse } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import DeleteTask from "@/components/DeleteTask";
+import EditTask from "@/components/EditTask";
 
 type Task = {
   id: string;
   title: string;
   description: string;
-  reminder: boolean;
   completed?: boolean;
-  dueDate?: string; // 'MM-DD-YYYY'
-  dueTime?: string; // 'HH:mm'
-  dateAdded?: string; // 'MM-DD-YYYY'
-  priority?: string; // changed from number to string
+  dueDate?: string;
+  dueTime?: string;
+  dateAdded?: string;
+  priority?: string;
 };
 
 type TodoListProps = {
@@ -41,7 +29,6 @@ export default function TodoList({ refreshKey }: TodoListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch tasks on mount
   useEffect(() => {
     async function fetchTasks() {
       setLoading(true);
@@ -53,7 +40,6 @@ export default function TodoList({ refreshKey }: TodoListProps) {
           id: docSnap.id,
           title: data.title,
           description: data.description,
-          reminder: data.reminder,
           completed: data.completed,
           dueDate: data.dueDate,
           dueTime: data.dueTime,
@@ -65,48 +51,10 @@ export default function TodoList({ refreshKey }: TodoListProps) {
       setLoading(false);
     }
     fetchTasks();
-  }, [refreshKey]); // refetch when refreshKey changes
-
-  async function handleAddTask(newTask: Omit<Task, "id">) {
-    await addDoc(collection(db, "tasks"), {
-      ...newTask,
-      dateAdded: newTask.dateAdded || new Date().toLocaleDateString("en-US"),
-      completed: false,
-    });
-    // Optionally re-fetch tasks or optimistically update state
-  }
-
-  // Update
-  async function handleUpdateTask(id: string, updates: Partial<Task>) {
-    const taskRef = doc(db, "tasks", id);
-    await updateDoc(taskRef, updates);
-  }
-
-  // Delete with Undo
-  async function handleDeleteTask(task: Task) {
-    // delete from firestore
-    await deleteDoc(doc(db, "tasks", task.id));
-    // delete from ui/local state
-    setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    toast("Task deleted", {
-      description: <span style={{ color: "#393E46", fontWeight: "bold" }}>{`The "${task.title}" was deleted.`}</span>,
-      action: {
-        label: "Undo",
-        onClick: async () => {
-          const { id, ...taskData } = task;
-          const docRef = await addDoc(collection(db, "tasks"), taskData);
-          setTasks((prev) => [
-            { ...task, id: docRef.id },
-            ...prev,
-          ]);
-        },
-      },
-      duration: 5000,
-    });
-  }
+  }, [refreshKey]);
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-5xl">
       <CardHeader>
         <CardTitle>To-Do List</CardTitle>
       </CardHeader>
@@ -118,49 +66,81 @@ export default function TodoList({ refreshKey }: TodoListProps) {
         ) : (
           <ul className="space-y-2">
             {tasks.map((task) => (
-              <Card key={task.id} className="mb-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card
+                key={task.id}
+                className="w-full mb-2 shadow-none border rounded-lg p-0"
+              >
+                <div className="flex items-stretch min-h-0">
+                  {/* Checkbox Section */}
+                  <div className="flex items-center justify-center px-2 border-r">
                     <input
                       type="checkbox"
                       checked={task.completed}
                       readOnly
-                      className="accent-blue-600"
+                      className="accent-blue-600 w-5 h-5"
                     />
-                    <span className={task.completed ? "line-through text-gray-400" : ""}>
-                      {task.title}
-                    </span>
-                    {task.priority === "low" && <Badge className="bg-yellow-400 text-black ml-2">Low Priority</Badge>}
-                    {task.priority === "mid" && <Badge className="bg-orange-400 text-black ml-2">Mid Priority</Badge>}
-                    {task.priority === "high" && <Badge className="bg-red-500 text-white ml-2">High Priority</Badge>}
-                    {/* No badge for 'none' */}
-                  </CardTitle>
-                  {task.dateAdded && !isNaN(Date.parse(task.dateAdded)) && (
-                    <div className="text-xs text-gray-500 ml-7">Added: {format(new Date(task.dateAdded), 'MMMM d, yyyy')}</div>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {task.description && (
-                    <div className="mb-2">{task.description}</div>
-                  )}
+                  </div>
+                  {/* Main Content Section */}
+                  <div className="flex-1 flex flex-col justify-center px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          (task.completed ? "line-through text-gray-400 " : "") +
+                          "font-bold text-lg"
+                        }
+                      >
+                        {task.title}
+                      </span>
+                      {task.priority === "low" && (
+                        <Badge className="bg-yellow-400 text-black ml-2">Low Priority</Badge>
+                      )}
+                      {task.priority === "mid" && (
+                        <Badge className="bg-orange-400 text-black ml-2">Mid Priority</Badge>
+                      )}
+                      {task.priority === "high" && (
+                        <Badge className="bg-red-500 text-white ml-2">High Priority</Badge>
+                      )}
+                    </div>
+                    {task.description && (
+                      <div className="text-sm text-gray-500">{task.description}</div>
+                    )}
+                    {task.dateAdded && (
+                      <div className="text-xs text-gray-400">
+                        Added: {isNaN(Date.parse(task.dateAdded))
+                          ? task.dateAdded
+                          : format(new Date(task.dateAdded), "MMMM d, yyyy")}
+                      </div>
+                    )}
+                    <div className="flex gap-2 mt-1">
+                      <EditTask
+                        task={task}
+                        onUpdated={(updatedTask) => {
+                          setTasks((prev) =>
+                            prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+                          );
+                        }}
+                      />
+                      <DeleteTask
+                        task={task}
+                        onDeleted={(id) => setTasks((prev) => prev.filter((t) => t.id !== id))}
+                        onUndo={(restoredTask) => setTasks((prev) => [restoredTask as Task, ...prev])}
+                      />
+                    </div>
+                  </div>
+                  {/* Due Date/Time Section */}
                   {(task.dueDate || task.dueTime) && (
-                    <div className="text-sm text-gray-500 mb-2">
-                      Due: {task.dueDate && !isNaN(Date.parse(task.dueDate)) ? format(new Date(task.dueDate), 'MMMM d, yyyy') : ''} {task.dueTime}
+                    <div className="flex flex-col items-end justify-center px-4 min-w-[90px] border-l">
+                      {task.dueDate && !isNaN(Date.parse(task.dueDate)) && (
+                        <span className="text-sm text-purple-700 font-semibold">
+                          {format(new Date(task.dueDate), "d MMMM")}
+                        </span>
+                      )}
+                      {task.dueTime && (
+                        <span className="text-xs text-gray-500">{task.dueTime}</span>
+                      )}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteTask(task)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
+                </div>
               </Card>
             ))}
           </ul>
